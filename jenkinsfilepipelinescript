@@ -1,0 +1,42 @@
+node ('master')
+{
+  def mavenHome = tool name: "maven3.8.3"  
+stage ('checkout source code')
+{
+git branch: 'development', credentialsId: '7f0f4f6b-1f74-46c1-b2fa-b87d3988fa83', url: 'https://github.com/mallikarjuna-solutions/maven-web-application.git'
+}
+
+stage ('build')
+{
+    
+sh "${mavenHome}/bin/mvn clean package"
+}
+
+stage ('sonarqube report')
+{
+    
+sh "${mavenHome}/bin/mvn sonar:sonar"
+}
+stage ('upload Build artifact')
+{
+    
+sh "${mavenHome}/bin/mvn deploy"
+}
+stage ('Deploy in tomcat')
+{
+    
+sshagent(['f923a01d-cab9-405f-a253-f7b0e832391f'])
+{
+sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@3.108.236.249:/opt/apache-tomcat-9.0.54/webapps/"
+}
+}
+stage('Email nofifications')
+{
+mail bcc: 'nalasingh@gmail.com', body: '''build over
+
+Regards
+mallikarjuna''', cc: 'mallidevops000@gmail.com', from: '', replyTo: '', subject: 'build over', to: 'malliyadav.n@gmail.com'
+}
+
+
+}
